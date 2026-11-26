@@ -60,7 +60,7 @@ svg{max-width:100%;height:auto}:root{--pic:min(calc(100vw - 44px),calc(100dvh - 
 "use strict";
 /* ===================== CONFIG (edit here) ===================== */
 const CONFIG = {
-  appVersion: "proto-1.8",
+  appVersion: "proto-1.9",
   languages: [["en","English"],["hi","हिन्दी"],["mr","मराठी"]],   // UI strings currently English only; see STR
   load: "memory",              // UNDECIDED (design v6): working memory or inhibitory control, to be chosen from the lab-in-field results. Only "memory" is built; it is the default.
   digitsInLoad: 7,
@@ -141,16 +141,16 @@ const INFO_PAGES=[
  {key:"tb_box",      group:"tb", text:"In the first activity, you will see a box of balls.", visual:"tbbox"},
  {key:"tb_task",     group:"tb", text:"You decide whether the box has more red balls or more blue balls.", visual:"tbbuttons"},
  {key:"tb_bar",      group:"tb", text:"Each picture is one box. The box is picked at random from a group of 10 boxes, and then put back.", visual:"blankgroups"},
- {key:"tb_bar2",     group:"tb", text:"The row of squares shows the group. Here, 7 of the 10 boxes have more red balls, and 3 have more blue balls.", visual:"tbbar"},
- {key:"tb_bar3",     group:"tb", text:"The group of boxes may change from one picture to the next, without any notice. So look at the squares above each picture.", visual:"priorchange"},
+ {key:"tb_bar2",     group:"tb", text:"The row of squares shows the mix of the group. In this group, 7 of the 10 boxes have more red balls, and 3 have more blue balls.", visual:"tbbar"},
+ {key:"tb_bar3",     group:"tb", text:"The group of boxes may change from one picture to the next, *without any notice*. So keep an eye out for the squares above each picture!", visual:"priorchange"},
  {key:"tb_pay1",     group:"tb", text:"You earn money for every correct answer."},
  {key:"tb_pay2",     group:"tb", text:"In some rounds each correct answer earns Rs 1, and in other rounds Rs 4."},
  {key:"tb_practice", group:"tb", text:"First, some practice pictures, where nothing is real and the tablet tells you if you were right."},
  {key:"tb_real",     group:"tbreal", text:"Now the real rounds begin."},
- {key:"tb_load1",    group:"tbload", text:"In some rounds of the real activity, you will first see a number.", visual:"digits"},
- {key:"tb_load2",    group:"tbload", text:"Remember the number while you look at the pictures.", visual:"digits"},
- {key:"tb_load3",    group:"tbload", text:"At the end of the round, type the number you saw."},
- {key:"tb_load4",    group:"tbload", text:"If you type it exactly right, you earn Rs 5 more. First, one practice with a number."},
+ {key:"tb_load1",    group:"tbload", text:"New! In some rounds of the real activity, you will first see a number.", visual:"digitsremember"},
+ {key:"tb_load3",    group:"tbload", text:"At the end of the round, you can type the number you saw!", visual:"typing"},
+ {key:"tb_load4",    group:"tbload", text:"If you type it exactly right, you get Rs 5 more!", visual:"bonus5"},
+ {key:"tb_load5",    group:"tbload", text:"Let's practice!"},
  // --- tapping task (group "ef")
  {key:"ef_intro",    group:"ef", text:"Now a tapping task. You can earn money for every tap in the correct order.", visual:"efbuttons"},
  {key:"ef_how",      group:"ef", text:"You will see two big buttons, A and B.", visual:"efbuttons"},
@@ -179,7 +179,7 @@ const INFO_PAGES=[
  {key:"price1",   mode:"slider", text:"Then the tablet picks its own price for that item.", visual:"price"},
  {key:"price2",   mode:"slider", text:"If the tablet's price is the same as or less than your price, you get the item.", visual:"winA"},
  {key:"price2b",  mode:"slider", text:"Then you pay only the tablet's price, and you keep the rest of your dal.", visual:"winB"},
- {key:"price3",   mode:"slider", text:"If the price is more than what you pushed, you get no item, and you keep all your dal: 500 g.", visual:"lose"},
+ {key:"price3",   mode:"slider", text:"If the tablet's price is more than your price, you get no item, and you keep all your dal: 500 g.", visual:"lose"},
  {key:"best",     mode:"slider", text:"So push exactly as much as you would truly give, because pushing less may lose the item, and pushing more may cost too much."},
  {key:"random3s", mode:"slider", text:"We do not know which item it will be. The tablet decides. So answer for every item as if it is the real one."},
  // --- both
@@ -188,6 +188,7 @@ const INFO_PAGES=[
  {key:"practice", text:"First, let us practise, where nothing is real.", visual:"item"},
  {key:"real",     text:"Now come the real ones, and one of them will really happen."}
 ];
+const rich=t=>t.split("*").map((x,i)=>i%2?h("em",{},x):x);
 const AUDIO_KEYS=["intro","tb_practice_intro","tb_block_start_rs1","tb_block_start_rs4","tb_block_start_rs1_load","tb_block_start_rs4_load","tb_digits_show","tb_digits_recall","tb_done","pl_demo_draw","pl_comprehension","pl_list_practice","pl_list_practice2","pl_list_practice3","pl_list_easyDeck","pl_list_openDeck","pl_list_childSnack","pl_list_schoolGood","pl_list_game","effort_intro","effort_end","tb_prior","tb_block_start_rs1_practice","tb_block_start_rs4_practice","tb_digits_practice","thanks"].concat(INFO_PAGES.map(i=>"info_"+i.key));
 function audioKey(step){
   const m=step.meta||{};
@@ -382,12 +383,13 @@ SCREENS.tb_trial=(step)=>{
 
 SCREENS.tb_prior=(step)=>{
   const m=step.meta,k=m.prior;
-  frame(step,h("div",{class:"card",style:"display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center;padding:18px 12px"},
+  frame(step,h("div",{class:"card",style:"display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;padding:16px 12px"},
     h("span",{class:"pill"},"Practice"),
-    h("h2",{style:"color:var(--red)"},"The group of boxes has changed!"),
-    h("p",{class:"mut",style:"font-size:18px;margin:0"},"Before: "+m.prev+" of 10 boxes had more red."),
-    priorBar(k),priorCaption(k),
-    h("p",{style:"font-size:22px"},"In the real rounds, the group changes by itself, and the tablet does not tell you. Look at the squares above each picture.")),
+    h("h2",{style:"color:var(--red);margin:4px 0"},"Note: the group of boxes has changed!"),
+    h("div",{class:"mut",style:"font-size:18px;font-weight:700"},"Before"),priorBar(m.prev),priorCaption(m.prev),
+    h("b",{style:"font-size:26px"},"↓"),
+    h("div",{class:"mut",style:"font-size:18px;font-weight:700"},"Now"),priorBar(k),priorCaption(k),
+    h("p",{style:"font-size:22px;font-weight:700;margin:8px 0 0"},"Remember: you will not see this note in the real rounds!")),
     btn(T("next"),()=>next()));
 };
 SCREENS.tb_block_start=(step)=>{
@@ -444,19 +446,14 @@ function verdictBottom(key,price){
 }
 const vcard=(...k)=>h("div",{class:"card",style:"display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;width:100%;padding:14px"},...k);
 function verdictCard(win,key,push,price){
-  const N=CONFIG.tokensTotal,give=win?price:0,kept=N-give;
-  const kids=[h("div",{class:"big",style:"font-size:30px"},"Price: "+packTxt(price))];
-  if(win){
-    kids.push(h("div",{class:"big",style:"font-size:32px;color:var(--ok)"},"You get the item"),itemPic(key));
-    kids.push(h("div",{class:"cmp",style:"width:100%;flex-direction:column"},
-      h("div",{class:"g"},price<push?["You pay ",h("u",{},packTxt(price))," ",h("u",{},"instead of")," "+packTxt(push)]:"You pay "+packTxt(price)),
-      h("div",{class:"k"},"You keep "+packTxt(kept),h("small",{},"("+tokensToG(kept)+" g of dal)"))));
-  }else{
-    kids.push(h("div",{class:"big",style:"font-size:28px"},"No item this time"),
-      h("div",{class:"cmp",style:"width:100%;flex-direction:column"},h("div",{class:"k"},"You keep all "+N+" packets",h("small",{},"("+tokensToG(N)+" g of dal)"))));
-  }
-  return h("div",{class:"card",style:"display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;width:100%;padding:14px"},...kids);
-}function optCard(kind,key,price,onTap,still){
+  if(win)return vcard(...verdictTop(key,push,price));
+  return vcard(h("div",{class:"big",style:"font-size:28px"},"Tablet's price: "+packTxt(price)),
+    h("div",{class:"big",style:"font-size:28px"},"Your price: "+packTxt(push)),
+    h("p",{style:"font-size:21px;font-weight:700;margin:4px 0"},"The tablet's price is more than your price, so you keep all your dal."),
+    h("p",{style:"font-size:26px;font-weight:700;color:var(--red);margin:0"},"You get no item."),
+    h("div",{class:"cmp",style:"width:100%;flex-direction:column"},h("div",{class:"k"},"Kept: all "+packTxt(CONFIG.tokensTotal),h("small",{},"("+tokensToG(CONFIG.tokensTotal)+" g of dal)"))));
+}
+function optCard(kind,key,price,onTap,still){
   const it=CONFIG.items[key],give=kind==="take"?price:0,kept=CONFIG.tokensTotal-give;
   return h("div",{class:"oc"+(still?" still":""),"data-id":kind,onclick:onTap},
     h("div",{class:"hd"},T(kind)),
@@ -504,7 +501,7 @@ function infoVisual(v){
   if(v==="winA")return vcard(...verdictTop("practice",6,4));
   if(v==="winB")return vcard(...verdictBottom("practice",4));
   if(v==="win")return ex(6,4,true);
-  if(v==="lose")return ex(6,9,false);
+  if(v==="lose")return ex(4,9,false);
   if(v==="welcome")return h("div",{class:"pic lg"},"👋");
   if(v==="priornote")return h("div",{class:"card",style:"width:100%;border:3px solid var(--red);display:flex;flex-direction:column;gap:6px;align-items:center;padding:12px"},h("b",{style:"font-size:24px;color:var(--red)"},"Note: the group of boxes changes!"),priorBar(3),priorCaption(3));
   if(v==="efseq"){const sq=(L,on)=>h("div",{class:"btn"+(on?"":" sec"),style:"pointer-events:none;min-width:64px;min-height:64px;padding:0;font-size:32px"},L);return h("div",{class:"row c",style:"flex-wrap:nowrap;gap:6px"},sq("A",1),h("b",{},"→"),sq("B"),h("b",{},"→"),sq("A",1),h("b",{},"→"),sq("B"),h("b",{},"…"))}
@@ -514,10 +511,20 @@ function infoVisual(v){
   if(v==="clock")return h("div",{class:"pic lg"},"⏱️");
   if(v==="tbbox")return drawPicture(makePicture(7,"scattered"));
   if(v==="tbbuttons")return h("div",{class:"row c",style:"flex-wrap:nowrap"},h("div",{class:"btn ans",style:"pointer-events:none;min-height:70px"},h("span",{class:"dot r"}),T("red")),h("div",{class:"btn ans",style:"pointer-events:none;min-height:70px"},h("span",{class:"dot b"}),T("blue")));
-  if(v==="blankgroups"){const g=n=>{const d=h("div",{class:"prior"});for(let i=0;i<10;i++)d.append(h("i",{style:"background:#2b2b2b!important"}));return d};
-    return h("div",{style:"display:flex;flex-direction:column;gap:12px;align-items:center;width:100%"},g(),g(),g(),h("p",{class:"mut",style:"margin:0"},"Each square is one box. Three groups of 10 boxes."))}
+  if(v==="blankgroups"){const g=n=>{const d=h("div",{class:"prior",style:"flex:1"});for(let i=0;i<10;i++)d.append(h("i",{style:"background:#2b2b2b!important"}));return h("div",{style:"display:flex;gap:8px;align-items:center;width:100%"},h("b",{style:"font-size:26px;width:22px"},String(n)),d)};
+    return h("div",{style:"display:flex;flex-direction:column;gap:14px;align-items:center;width:100%"},g(1),g(2),g(3),h("p",{class:"mut",style:"margin:0"},"Three groups of 10 boxes. Each square is one box."))}
   if(v==="priorchange")return h("div",{style:"display:flex;flex-direction:column;gap:6px;align-items:center;width:100%"},priorBar(7),priorCaption(7),h("b",{style:"font-size:28px"},"↓"),priorBar(3),priorCaption(3));
   if(v==="tbbar")return h("div",{style:"display:flex;flex-direction:column;gap:6px;align-items:center"},priorBar(7),priorCaption(7));
+  if(v==="digitsremember")return h("div",{style:"display:flex;flex-direction:column;gap:10px;align-items:center;width:100%"},h("div",{class:"digits"},"4829173"),h("div",{style:"font-size:30px;font-weight:700;color:var(--red)"},"Remember it!"));
+  if(v==="bonus5")return h("div",{class:"digits",style:"color:var(--ok)"},"+ Rs 5");
+  if(v==="typing"){const tgt="4829173",disp=h("div",{class:"digits",style:"min-height:70px"},"_"),kp=h("div",{class:"keypad",style:"width:100%"});
+    const keys={};[1,2,3,4,5,6,7,8,9,"",0,""].forEach(n=>{const b=h("div",{class:"btn sec",style:"pointer-events:none;min-height:46px;font-size:24px"},String(n));if(n!=="")keys[n]=b;kp.append(b)});
+    let i=0,tm=setInterval(()=>{if(!disp.isConnected){clearInterval(tm);return}
+      Object.values(keys).forEach(k=>k.classList.add("sec"));
+      if(i>tgt.length){i=0;disp.textContent="_";return}
+      if(i===tgt.length){i++;return}
+      keys[tgt[i]].classList.remove("sec");i++;disp.textContent=tgt.slice(0,i)},700);
+    return h("div",{style:"display:flex;flex-direction:column;gap:8px;align-items:center;width:100%"},disp,kp)}
   if(v==="digits")return h("div",{class:"digits"},"4829173");
   if(v==="efbuttons")return h("div",{class:"row c",style:"flex-wrap:nowrap;gap:18px"},h("div",{class:"btn",style:"pointer-events:none;min-width:110px;min-height:110px;font-size:56px"},"A"),h("div",{class:"btn sec",style:"pointer-events:none;min-width:110px;min-height:110px;font-size:56px"},"B"));
   if(v==="march")return h("div",{class:"cal"},h("div",{class:"hd"},"MARCH"),h("div",{class:"bd"},"2027"),h("div",{class:"sb"},"end of the school year"));
@@ -526,7 +533,7 @@ function infoVisual(v){
 SCREENS.info=(step)=>{
   const P=INFO_PAGES.find(p=>p.key===step.meta.key);
   frame(step,h("div",{class:"card",style:"display:flex;flex-direction:column;gap:18px;align-items:center;text-align:center;padding:24px 18px"},
-    h("p",{style:"font-size:26px;line-height:1.4"},P.text),infoVisual(P.visual)),navRow(step));
+    h("p",{style:"font-size:26px;line-height:1.4"},rich(P.text)),infoVisual(P.visual)),navRow(step));
 };
 SCREENS.pl_item_intro=(step)=>{
   const m=step.meta,it=CONFIG.items[m.key];
@@ -598,6 +605,7 @@ SCREENS.pl_demo_draw=(step)=>{
           o.buy?vcard(...verdictTop(key,push,price)):verdictCard(false,key,push,price)))}
       if(st.t==="out2")body.append(h("div",{style:"display:flex;flex-direction:column;gap:10px;align-items:center"},pill,vcard(...verdictBottom(key,price))));
       if(st.t==="explain")body.append(h("div",{style:"display:flex;flex-direction:column;gap:12px"},
+        h("div",{style:"background:var(--blue);color:#fff;font-size:30px;font-weight:700;text-align:center;padding:12px;border-radius:14px"},"Remember!"),
         h("div",{class:"card",style:"border:3px solid var(--ok);text-align:center;padding:16px"},h("div",{style:"font-size:24px;font-weight:700"},"Tablet's price same or less than yours"),h("div",{style:"font-size:28px;color:var(--ok);font-weight:700;margin-top:6px"},"You get the item")),
         h("div",{class:"card",style:"border:3px solid var(--red);text-align:center;padding:16px"},h("div",{style:"font-size:24px;font-weight:700"},"Tablet's price more than yours"),h("div",{style:"font-size:28px;color:var(--red);font-weight:700;margin-top:6px"},"No item. You keep all your dal"))));
       if(st.t==="real")body.append(h("div",{class:"card",style:cardS},h("p",{style:"font-size:26px;font-weight:700"},"In the real part, the tablet does this once, with your real prices."),h("p",{style:"font-size:22px"},"Your dal, and the item if you get one, will be given to you in March, together with your other earnings.")));
