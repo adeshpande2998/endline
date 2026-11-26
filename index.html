@@ -60,7 +60,7 @@ svg{max-width:100%;height:auto}:root{--pic:min(calc(100vw - 44px),calc(100dvh - 
 "use strict";
 /* ===================== CONFIG (edit here) ===================== */
 const CONFIG = {
-  appVersion: "proto-1.3",
+  appVersion: "proto-1.4",
   languages: [["en","English"],["hi","हिन्दी"],["mr","मराठी"]],   // UI strings currently English only; see STR
   load: "memory",              // UNDECIDED (design v6): working memory or inhibitory control, to be chosen from the lab-in-field results. Only "memory" is built; it is the default.
   digitsInLoad: 7,
@@ -72,7 +72,7 @@ const CONFIG = {
   ballR: 10.5,
   digitShowMs: 7000,
   tokensTotal: 20, gramsPerToken: 25,   // 20 packets of 25 g = 500 g dal (internal names still say "token")
-  endScreen:"price_only",   // "price_only" (she might get the item) or "outcome" (the verdict is shown)
+  endScreen:"outcome",   // "outcome" (item picked but not named, price named, verdict) or "price_only" (she might get the item)
   revealAtEnd: true,         // slider mode: last screen says the price picked and whether she gets all her dal or an item + dal (never which item)
   shopMode: "slider",        // "slider" (parent pushes dal packets to her maximum; one random item and one random price decide, BDM) or "choices" (one price per screen)
   shopPrices: [0,2,4,6,9,12,16,20],   // packets given up; shown ONE per screen in a random order for each person (no forced switch point)
@@ -708,16 +708,22 @@ function drawTradingDecision(){
 }
 function revealLines(d){
   if(!CONFIG.revealAtEnd||d.mode!=="slider")return [];
-  const F="font-size:22px",N=CONFIG.tokensTotal;
-  if(CONFIG.endScreen==="outcome")
-    return [h("p",{style:F},"The tablet picked its own price: "+packTxt(d.price)+"."),
-      d.bought?h("p",{style:F+";font-weight:700;color:var(--ok)"},"You get the item, and you pay "+packTxt(d.price)+". You keep "+packTxt(N-d.price)+" of dal.")
-              :h("p",{style:F+";font-weight:700"},"You get no item, and you keep all "+packTxt(N)+" of dal.")];
-  // default: the price only. She MIGHT get the item (it depends on the item the tablet picked); we say what happens in each case.
-  return [h("p",{style:F+";font-weight:700"},"The tablet picked its own price: "+packTxt(d.price)+"."),
-    h("p",{style:F},"You might get the item. If you do, you pay "+packTxt(d.price)+" and you keep "+packTxt(N-d.price)+" ("+tokensToG(N-d.price)+" g) of dal."),
-    h("p",{style:F},"If you do not, you keep all "+packTxt(N)+" ("+tokensToG(N)+" g) of dal."),
-    h("p",{style:F},"We will tell you in March, together with your other earnings.")];
+  const F="font-size:22px",N=CONFIG.tokensTotal,kept=N-d.price;
+  if(CONFIG.endScreen==="price_only")
+    return [h("p",{style:F+";font-weight:700"},"The tablet picked its own price: "+packTxt(d.price)+"."),
+      h("p",{style:F},"You might get the item. If you do, you pay "+packTxt(d.price)+" and you keep "+packTxt(kept)+" ("+tokensToG(kept)+" g) of dal."),
+      h("p",{style:F},"If you do not, you keep all "+packTxt(N)+" ("+tokensToG(N)+" g) of dal.")];
+  // default: the tablet has picked ONE item (not named) and a price (named); then the outcome, without saying which item.
+  return [h("p",{style:F},"The tablet has picked one of the items. We do not say which one."),
+    h("p",{style:F+";font-weight:700"},"The tablet picked its own price: "+packTxt(d.price)+"."),
+    d.bought?h("div",{style:"display:flex;flex-direction:column;gap:8px"},
+        h("p",{style:F+";color:var(--ok);font-weight:700"},"This price is the same as or less than what you pushed for that item. So you get one item."),
+        h("p",{style:F},"You pay "+packTxt(d.price)+", and you keep "+packTxt(kept)+" ("+tokensToG(kept)+" g) of dal."),
+        h("p",{style:F},"We will tell you which item in March."))
+      :h("div",{style:"display:flex;flex-direction:column;gap:8px"},
+        h("p",{style:F+";font-weight:700"},"This price is more than what you pushed for that item. So you get no item this time."),
+        h("p",{style:F},"You keep all "+packTxt(N)+" ("+tokensToG(N)+" g) of dal."),
+        h("p",{style:F},"We will tell you in March."))];
 }
 SCREENS.thanks=(step)=>{
   const d=drawTradingDecision();
