@@ -60,7 +60,7 @@ svg{max-width:100%;height:auto}:root{--pic:min(calc(100vw - 44px),calc(100dvh - 
 "use strict";
 /* ===================== CONFIG (edit here) ===================== */
 const CONFIG = {
-  appVersion: "proto-1.9",
+  appVersion: "proto-2.0",
   languages: [["en","English"],["hi","हिन्दी"],["mr","मराठी"]],   // UI strings currently English only; see STR
   load: "memory",              // UNDECIDED (design v6): working memory or inhibitory control, to be chosen from the lab-in-field results. Only "memory" is built; it is the default.
   digitsInLoad: 7,
@@ -140,14 +140,16 @@ const INFO_PAGES=[
  {key:"tb_money",    group:"tb", text:"In each activity you can earn money. You will be given your winnings at the end of the school year, in March.", visual:"march"},
  {key:"tb_box",      group:"tb", text:"In the first activity, you will see a box of balls.", visual:"tbbox"},
  {key:"tb_task",     group:"tb", text:"You decide whether the box has more red balls or more blue balls.", visual:"tbbuttons"},
- {key:"tb_bar",      group:"tb", text:"Each picture is one box. The box is picked at random from a group of 10 boxes, and then put back.", visual:"blankgroups"},
- {key:"tb_bar2",     group:"tb", text:"The row of squares shows the mix of the group. In this group, 7 of the 10 boxes have more red balls, and 3 have more blue balls.", visual:"tbbar"},
+ {key:"tb_bar",      group:"tb", text:"First, the tablet picks one group of 10 boxes.", visual:"blankgroups"},
+ {key:"tb_bar2",     group:"tb", text:"This group was picked. We can see the mix below. In this group, 7 of the 10 boxes have more red balls, and 3 have more blue balls.", visual:"tbbar"},
+ {key:"tb_bar2b",    group:"tb", text:"Then, the tablet picks ONE box from this group, at random.", visual:"boxpick"},
+ {key:"tb_bar2c",    group:"tb", text:"That box is the one you see in the picture. Then it is put back in the group.", visual:"boxpick2"},
  {key:"tb_bar3",     group:"tb", text:"The group of boxes may change from one picture to the next, *without any notice*. So keep an eye out for the squares above each picture!", visual:"priorchange"},
  {key:"tb_pay1",     group:"tb", text:"You earn money for every correct answer."},
  {key:"tb_pay2",     group:"tb", text:"In some rounds each correct answer earns Rs 1, and in other rounds Rs 4."},
  {key:"tb_practice", group:"tb", text:"First, some practice pictures, where nothing is real and the tablet tells you if you were right."},
  {key:"tb_real",     group:"tbreal", text:"Now the real rounds begin."},
- {key:"tb_load1",    group:"tbload", text:"New! In some rounds of the real activity, you will first see a number.", visual:"digitsremember"},
+ {key:"tb_load1",    group:"tbload", lead:"New!", text:"In some rounds of the real activity, you will first see a number.", visual:"digitsremember"},
  {key:"tb_load3",    group:"tbload", text:"At the end of the round, you can type the number you saw!", visual:"typing"},
  {key:"tb_load4",    group:"tbload", text:"If you type it exactly right, you get Rs 5 more!", visual:"bonus5"},
  {key:"tb_load5",    group:"tbload", text:"Let's practice!"},
@@ -188,6 +190,8 @@ const INFO_PAGES=[
  {key:"practice", text:"First, let us practise, where nothing is real.", visual:"item"},
  {key:"real",     text:"Now come the real ones, and one of them will really happen."}
 ];
+const hop=(els,seq,hold,paint)=>{let i=0;paint(seq[0]);const tm=setInterval(()=>{if(!els[0].isConnected){clearInterval(tm);return}
+  i++;const k=i%(seq.length+hold);paint(k<seq.length?seq[k]:seq[seq.length-1])},650)};
 const rich=t=>t.split("*").map((x,i)=>i%2?h("em",{},x):x);
 const AUDIO_KEYS=["intro","tb_practice_intro","tb_block_start_rs1","tb_block_start_rs4","tb_block_start_rs1_load","tb_block_start_rs4_load","tb_digits_show","tb_digits_recall","tb_done","pl_demo_draw","pl_comprehension","pl_list_practice","pl_list_practice2","pl_list_practice3","pl_list_easyDeck","pl_list_openDeck","pl_list_childSnack","pl_list_schoolGood","pl_list_game","effort_intro","effort_end","tb_prior","tb_block_start_rs1_practice","tb_block_start_rs4_practice","tb_digits_practice","thanks"].concat(INFO_PAGES.map(i=>"info_"+i.key));
 function audioKey(step){
@@ -264,14 +268,14 @@ function buildSteps(){
   let prevK=null;
   // The "group has changed" note is shown ONLY in practice (it teaches the idea). Real rounds change the group silently.
   const priorNote=(k)=>{if(prevK!=null&&k!==prevK)add("tb_prior","toybox",{prior:k,prev:prevK,practice:true});prevK=k};
-  const pracRound=(stake,specs,t0)=>{add("tb_block_start","toybox",{practice:true,stake});
+  const pracRound=(stake,specs,t0)=>{add("tb_block_start","toybox",{practice:true,stake});prevK=null;
     specs.forEach(([lay,k],i)=>{priorNote(k);add("tb_trial","toybox",{practice:true,stake,pic:makePicture(k,lay),trial:t0+i,ptotal:4})})};
   pracRound(1,[["scattered",5],["clustered",7]],1);
   pracRound(4,[["clustered",3],["scattered",5]],3);
   INFO_PAGES.filter(p=>p.group==="tbload").forEach(p=>pg(p.key,"toybox"));
   {const dg=Array.from({length:CONFIG.digitsInLoad},()=>Math.floor(rng()*10)).join("");
    add("tb_digits_show","toybox",{practice:true,digits:dg});
-   priorNote(7);
+   prevK=null;
    add("tb_trial","toybox",{practice:true,pic:makePicture(7,"scattered"),trial:5,ptotal:5,withNumber:true});
    add("tb_digits_recall","toybox",{practice:true,digits:dg});}
   pg("tb_real","toybox");
@@ -394,11 +398,13 @@ SCREENS.tb_prior=(step)=>{
 };
 SCREENS.tb_block_start=(step)=>{
   const m=step.meta;
-  frame(step,h("div",{class:"card",style:"display:flex;flex-direction:column;gap:12px"},
+  frame(step,h("div",{class:"card",style:"display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;padding:22px 14px"},
     m.practice?h("span",{class:"pill"},"Practice"):h("span",{class:"pill"},"Round "+m.block+" of 8"),
-    h("h2",{},m.practice?"For this practice round, let's assume each correct answer earns Rs "+m.stake:"This round: Rs "+m.stake+" for each correct answer"),
-    h("p",{},m.practice?"You will see two pictures. Choose your answer below!":"You will see "+CONFIG.picturesPerBlock+" pictures."),
-    m.load?h("p",{class:"err"},"First you will see a number. Remember it. You will type it back at the end of the round."):""),
+    h("div",{style:"font-size:26px;margin-top:6px"},m.practice?"For this practice round, let's assume:":"This round:"),
+    h("div",{style:"font-size:88px;font-weight:800;line-height:1.05"},"Rs "+m.stake),
+    h("div",{style:"font-size:30px;font-weight:700"},"per correct answer"),
+    m.load?h("div",{style:"font-size:28px;font-weight:700;color:var(--red);margin-top:10px"},"First, remember a number!"):"",
+    h("div",{style:"font-size:24px;margin-top:10px"},m.practice?"You will see two pictures. Choose your answer below!":"You will see "+CONFIG.picturesPerBlock+" pictures.")),
     btn(T("begin"),()=>next()));
 };
 
@@ -511,8 +517,14 @@ function infoVisual(v){
   if(v==="clock")return h("div",{class:"pic lg"},"⏱️");
   if(v==="tbbox")return drawPicture(makePicture(7,"scattered"));
   if(v==="tbbuttons")return h("div",{class:"row c",style:"flex-wrap:nowrap"},h("div",{class:"btn ans",style:"pointer-events:none;min-height:70px"},h("span",{class:"dot r"}),T("red")),h("div",{class:"btn ans",style:"pointer-events:none;min-height:70px"},h("span",{class:"dot b"}),T("blue")));
-  if(v==="blankgroups"){const g=n=>{const d=h("div",{class:"prior",style:"flex:1"});for(let i=0;i<10;i++)d.append(h("i",{style:"background:#2b2b2b!important"}));return h("div",{style:"display:flex;gap:8px;align-items:center;width:100%"},h("b",{style:"font-size:26px;width:22px"},String(n)),d)};
-    return h("div",{style:"display:flex;flex-direction:column;gap:14px;align-items:center;width:100%"},g(1),g(2),g(3),h("p",{class:"mut",style:"margin:0"},"Three groups of 10 boxes. Each square is one box."))}
+  if(v==="blankgroups"){const rows=[];const g=n=>{const d=h("div",{class:"prior",style:"flex:1"});for(let i=0;i<10;i++)d.append(h("i",{style:"background:#2b2b2b!important"}));const w=h("div",{style:"display:flex;gap:8px;align-items:center;width:100%;padding:6px 8px;border-radius:12px;transition:all .25s"},h("b",{style:"font-size:26px;width:22px"},String(n)),d);rows.push(w);return w};
+    const box=h("div",{style:"display:flex;flex-direction:column;gap:10px;align-items:center;width:100%"},g(1),g(2),g(3),h("p",{class:"mut",style:"margin:0"},"Three groups of 10 boxes. Each square is one box."));
+    hop(rows,[0,2,0,1,2,1],5,r=>{rows.forEach((x,n)=>{x.style.background=n===r?"#fff3b0":"transparent";x.style.boxShadow=n===r?"0 0 0 4px #111":"none"})});return box}
+  if(v==="boxpick"){const bar=priorBar(7);const cells=Array.from(bar.children);
+    const box=h("div",{style:"display:flex;flex-direction:column;gap:10px;align-items:center;width:100%"},bar,priorCaption(7),h("p",{class:"mut",style:"margin:0"},"The tablet picks one box."));
+    hop(cells,[8,3,9,1,6,2],5,r=>cells.forEach((c,n)=>{c.style.outline=n===r?"5px solid #111":"none";c.style.transform=n===r?"scale(1.25)":"none"}));return box}
+  if(v==="boxpick2"){const bar=priorBar(7);Array.from(bar.children)[2].style.cssText+=";outline:5px solid #111;transform:scale(1.25)";
+    return h("div",{style:"display:flex;flex-direction:column;gap:8px;align-items:center;width:100%"},bar,h("b",{style:"font-size:28px"},"↓"),drawPicture(makePicture(7,"scattered"),true))}
   if(v==="priorchange")return h("div",{style:"display:flex;flex-direction:column;gap:6px;align-items:center;width:100%"},priorBar(7),priorCaption(7),h("b",{style:"font-size:28px"},"↓"),priorBar(3),priorCaption(3));
   if(v==="tbbar")return h("div",{style:"display:flex;flex-direction:column;gap:6px;align-items:center"},priorBar(7),priorCaption(7));
   if(v==="digitsremember")return h("div",{style:"display:flex;flex-direction:column;gap:10px;align-items:center;width:100%"},h("div",{class:"digits"},"4829173"),h("div",{style:"font-size:30px;font-weight:700;color:var(--red)"},"Remember it!"));
@@ -533,7 +545,7 @@ function infoVisual(v){
 SCREENS.info=(step)=>{
   const P=INFO_PAGES.find(p=>p.key===step.meta.key);
   frame(step,h("div",{class:"card",style:"display:flex;flex-direction:column;gap:18px;align-items:center;text-align:center;padding:24px 18px"},
-    h("p",{style:"font-size:26px;line-height:1.4"},rich(P.text)),infoVisual(P.visual)),navRow(step));
+    P.lead?h("div",{style:"font-size:40px;font-weight:800;color:var(--red);text-align:center"},P.lead):"",h("p",{style:"font-size:26px;line-height:1.4"},rich(P.text)),infoVisual(P.visual)),navRow(step));
 };
 SCREENS.pl_item_intro=(step)=>{
   const m=step.meta,it=CONFIG.items[m.key];
