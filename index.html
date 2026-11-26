@@ -60,7 +60,7 @@ svg{max-width:100%;height:auto}:root{--pic:min(calc(100vw - 44px),calc(100dvh - 
 "use strict";
 /* ===================== CONFIG (edit here) ===================== */
 const CONFIG = {
-  appVersion: "proto-1.5",
+  appVersion: "proto-1.6",
   languages: [["en","English"],["hi","हिन्दी"],["mr","मराठी"]],   // UI strings currently English only; see STR
   load: "memory",              // UNDECIDED (design v6): working memory or inhibitory control, to be chosen from the lab-in-field results. Only "memory" is built; it is the default.
   digitsInLoad: 7,
@@ -452,7 +452,7 @@ function verdictCard(win,key,push,price){
 /* Back is for instructions, practice and setup (where someone flubs a page or the language).
    It is never offered on a real measurement screen, and never from the page after it back INTO one:
    real Toy Box pictures and number recall, the tapping task and its end page, and the final draw. */
-const measured=st=>!!st&&((st.id==="tb_trial"&&!st.meta.practice)||(st.id==="tb_digits_recall"&&!st.meta.practice)||["effort_task","effort_end","thanks"].includes(st.id));
+const measured=st=>!!st&&((st.id==="tb_trial"&&!st.meta.practice)||(st.id==="tb_digits_recall"&&!st.meta.practice)||(st.id==="pl_slider"&&!st.meta.practice)||["effort_task","effort_end","thanks"].includes(st.id));
 let navBack=false;
 function canBack(step){return !measured(step)&&!measured(S.steps[S.cursor-1])}
 function goBack(){
