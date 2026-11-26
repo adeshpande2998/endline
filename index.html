@@ -44,7 +44,7 @@ input[type=text],input[type=number]{font-size:26px;padding:12px 14px;border:2px 
 svg{max-width:100%;height:auto}:root{--pic:min(calc(100vw - 44px),calc(100dvh - 400px),520px)}.trialsvg{width:var(--pic);height:var(--pic)}
 .trial{display:flex;flex-direction:column;gap:8px;align-items:center}.trial .row{flex-wrap:nowrap;gap:10px}.trial .btn.ans{font-size:19px}
 .tray.sq i{aspect-ratio:1/1;border-radius:5px}.coins i.lab{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#5a3d0b;aspect-ratio:1/1}
-.cmp{display:flex;flex-direction:column;gap:6px;flex:1}.cmp div{padding:6px 10px;border-radius:12px;font-size:21px;font-weight:700}.cmp .g{background:var(--blue2);color:var(--blue)}.cmp .k{background:#f6ead0;color:#7a5a12}.cmp small{font-size:14px;font-weight:600;margin-left:6px;white-space:nowrap}
+.cmp{display:flex;flex-direction:row;gap:6px;flex:1;width:100%}.cmp>div{flex:1;text-align:center}.cmp div{padding:6px 10px;border-radius:12px;font-size:21px;font-weight:700}.cmp .g{background:var(--blue2);color:var(--blue)}.cmp .k{background:#f6ead0;color:#7a5a12}.cmp small{font-size:14px;font-weight:600;margin-left:6px;white-space:nowrap}
 .cal{width:170px;border:3px solid #cfc8b6;border-radius:14px;overflow:hidden;background:#fff;text-align:center}.cal .hd{background:var(--red);color:#fff;font-size:26px;font-weight:700;padding:6px}.cal .bd{font-size:54px;font-weight:700;padding:10px 0}.cal .sb{font-size:16px;color:var(--mut);padding-bottom:10px}
 @media (orientation:landscape) and (max-height:520px){:root{--pic:min(calc(100dvh - 120px),360px)}.trial2{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center}}
 
@@ -55,12 +55,12 @@ svg{max-width:100%;height:auto}:root{--pic:min(calc(100vw - 44px),calc(100dvh - 
 </head>
 <body>
 <div id="app"></div>
-<div class="admin"><a href="#" id="adm-export">export</a><a href="#" id="adm-reset">reset</a></div>
+<div class="admin"><a href="#" id="adm-lang">language</a><a href="#" id="adm-export">export</a><a href="#" id="adm-reset">reset</a></div>
 <script>
 "use strict";
 /* ===================== CONFIG (edit here) ===================== */
 const CONFIG = {
-  appVersion: "proto-1.2",
+  appVersion: "proto-1.3",
   languages: [["en","English"],["hi","हिन्दी"],["mr","मराठी"]],   // UI strings currently English only; see STR
   load: "memory",              // UNDECIDED (design v6): working memory or inhibitory control, to be chosen from the lab-in-field results. Only "memory" is built; it is the default.
   digitsInLoad: 7,
@@ -72,6 +72,7 @@ const CONFIG = {
   ballR: 10.5,
   digitShowMs: 7000,
   tokensTotal: 20, gramsPerToken: 25,   // 20 packets of 25 g = 500 g dal (internal names still say "token")
+  endScreen:"price_only",   // "price_only" (she might get the item) or "outcome" (the verdict is shown)
   revealAtEnd: true,         // slider mode: last screen says the price picked and whether she gets all her dal or an item + dal (never which item)
   shopMode: "slider",        // "slider" (parent pushes dal packets to her maximum; one random item and one random price decide, BDM) or "choices" (one price per screen)
   shopPrices: [0,2,4,6,9,12,16,20],   // packets given up; shown ONE per screen in a random order for each person (no forced switch point)
@@ -139,7 +140,9 @@ const INFO_PAGES=[
  {key:"tb_money",    group:"tb", text:"In each activity you can earn money. You will be given your winnings at the end of the school year, in March.", visual:"march"},
  {key:"tb_box",      group:"tb", text:"In the first activity, you will see a box of balls.", visual:"tbbox"},
  {key:"tb_task",     group:"tb", text:"You decide whether the box has more red balls or more blue balls.", visual:"tbbuttons"},
- {key:"tb_bar",      group:"tb", text:"The row of small squares shows how many of 10 boxes like this have more red balls.", visual:"tbbar"},
+ {key:"tb_bar",      group:"tb", text:"Each picture is one box, picked at random from a group of 10 boxes, and then put back.", visual:"tbbar"},
+ {key:"tb_bar2",     group:"tb", text:"The row of squares shows the group. Here, 7 of the 10 boxes have more red balls, and 3 have more blue balls.", visual:"tbbar"},
+ {key:"tb_bar3",     group:"tb", text:"The group can change. When it does, the tablet will show you a note, so look at the squares.", visual:"priornote"},
  {key:"tb_pay1",     group:"tb", text:"You earn money for every correct answer."},
  {key:"tb_pay2",     group:"tb", text:"In some rounds each correct answer earns Rs 1, and in other rounds Rs 4."},
  {key:"tb_practice", group:"tb", text:"First, some practice pictures, where nothing is real and the tablet tells you if you were right."},
@@ -152,7 +155,7 @@ const INFO_PAGES=[
  {key:"ef_intro",    group:"ef", text:"Now a tapping task. You can earn money for every correct tap.", visual:"efbuttons"},
  {key:"ef_how",      group:"ef", text:"You will see two big buttons, A and B.", visual:"efbuttons"},
  {key:"ef_how2",     group:"ef", text:"Tap A, then B, then A, then B, again and again, as fast as you can.", visual:"efseq"},
- {key:"ef_rule",     group:"ef", text:"A tap only counts if it is the other letter. Tapping the same letter twice in a row earns nothing.", visual:"efrule"},
+ {key:"ef_rule",     group:"ef", text:"Only taps in the correct order count: A, then B, then A, then B. A tap in the wrong order earns nothing.", visual:"efrule"},
  {key:"ef_pay",      group:"ef", text:"Each correct tap earns you "+CONFIG.effort.paisePerPoint+" paise, so the more you tap, the more you earn. You will be paid in March."},
  {key:"ef_time",     group:"ef", text:"The real task lasts "+Math.round(CONFIG.effort.seconds/60)+" minutes.", visual:"clock"},
  {key:"ef_practice", group:"ef", text:"First, a practice of "+CONFIG.effort.practiceSeconds+" seconds, where nothing is real."},
@@ -175,16 +178,17 @@ const INFO_PAGES=[
  {key:"random1s", mode:"slider", text:"At the end, the tablet picks just ONE of the items at random.", visual:"pickone"},
  {key:"price1",   mode:"slider", text:"Then the tablet picks its own price for that item.", visual:"price"},
  {key:"price2",   mode:"slider", text:"If the price is the same as or less than what you pushed, you get the item.", visual:"win"},
- {key:"price3",   mode:"slider", text:"If the price is more than what you pushed, you get no item.", visual:"lose"},
+ {key:"price2b",  mode:"slider", text:"And you pay only the price. So you pay 4 packets instead of the 6 packets you pushed.", visual:"win"},
+ {key:"price3",   mode:"slider", text:"If the price is more than what you pushed, you get no item, and you keep all your dal: 500 g.", visual:"lose"},
  {key:"best",     mode:"slider", text:"So push exactly as much as you would truly give, because pushing less may lose the item, and pushing more may cost too much."},
  {key:"random3s", mode:"slider", text:"We do not know which item it will be. The tablet decides. So answer for every item as if it is the real one."},
  // --- both
  {key:"when1",    text:"The tablet picks at the end, after you have finished all of them."},
- {key:"when2",    text:"The dal and the item will be given to you in March.", visual:"march"},
+ {key:"when2",    text:"Your dal and the item will be given to you in March, together with what you earned in the box activity and the tapping task.", visual:"march"},
  {key:"practice", text:"First, let us practise, where nothing is real.", visual:"item"},
  {key:"real",     text:"Now come the real ones, and one of them will really happen."}
 ];
-const AUDIO_KEYS=["intro","tb_practice_intro","tb_block_start_rs1","tb_block_start_rs4","tb_block_start_rs1_load","tb_block_start_rs4_load","tb_digits_show","tb_digits_recall","tb_done","pl_demo_draw","pl_comprehension","pl_list_practice","pl_list_practice2","pl_list_practice3","pl_list_easyDeck","pl_list_openDeck","pl_list_childSnack","pl_list_schoolGood","pl_list_game","effort_intro","effort_end","tb_block_start_rs1_practice","tb_block_start_rs4_practice","tb_digits_practice","thanks"].concat(INFO_PAGES.map(i=>"info_"+i.key));
+const AUDIO_KEYS=["intro","tb_practice_intro","tb_block_start_rs1","tb_block_start_rs4","tb_block_start_rs1_load","tb_block_start_rs4_load","tb_digits_show","tb_digits_recall","tb_done","pl_demo_draw","pl_comprehension","pl_list_practice","pl_list_practice2","pl_list_practice3","pl_list_easyDeck","pl_list_openDeck","pl_list_childSnack","pl_list_schoolGood","pl_list_game","effort_intro","effort_end","tb_prior","tb_block_start_rs1_practice","tb_block_start_rs4_practice","tb_digits_practice","thanks"].concat(INFO_PAGES.map(i=>"info_"+i.key));
 function audioKey(step){
   const m=step.meta||{};
   if(step.id==="tb_block_start")return "tb_block_start_rs"+m.stake+(m.load?"_load":"");
@@ -256,13 +260,16 @@ function buildSteps(){
   const pg=(k,mod)=>add("info",mod,{key:k});
   INFO_PAGES.filter(p=>p.group==="tb").forEach(p=>pg(p.key,"toybox"));
   // --- Toy box practice: note the pay, two pictures (the box type and the prior change between them), twice; then the number
-  const pracRound=(stake,specs,t0)=>{add("tb_block_start","toybox",{practice:true,stake});
-    specs.forEach(([lay,k],i)=>add("tb_trial","toybox",{practice:true,stake,pic:makePicture(k,lay),trial:t0+i,ptotal:4}))};
+  let prevK=null;
+  const priorNote=(k,mod,practice)=>{add("tb_prior",mod||"toybox",{prior:k,prev:prevK,practice:!!practice});prevK=k};
+  const pracRound=(stake,specs,t0)=>{add("tb_block_start","toybox",{practice:true,stake});prevK=null;
+    specs.forEach(([lay,k],i)=>{if(k!==prevK)priorNote(k,"toybox",true);add("tb_trial","toybox",{practice:true,stake,pic:makePicture(k,lay),trial:t0+i,ptotal:4})})};
   pracRound(1,[["scattered",5],["clustered",7]],1);
   pracRound(4,[["clustered",3],["scattered",5]],3);
   INFO_PAGES.filter(p=>p.group==="tbload").forEach(p=>pg(p.key,"toybox"));
   {const dg=Array.from({length:CONFIG.digitsInLoad},()=>Math.floor(rng()*10)).join("");
    add("tb_digits_show","toybox",{practice:true,digits:dg});
+   prevK=null;priorNote(7,"toybox",true);
    add("tb_trial","toybox",{practice:true,pic:makePicture(7,"scattered"),trial:5,ptotal:5,withNumber:true});
    add("tb_digits_recall","toybox",{practice:true,digits:dg});}
   pg("tb_real","toybox");
@@ -275,8 +282,8 @@ function buildSteps(){
     add("tb_block_start","toybox",{block:bi+1,load:c.load,stake:c.stake,layout:c.layout});
     let digits=null;
     if(c.load){digits=Array.from({length:CONFIG.digitsInLoad},()=>Math.floor(rng()*10)).join("");add("tb_digits_show","toybox",{block:bi+1,digits});}
-    const pri=shuffle(CONFIG.priorsPerBlock);
-    pri.forEach((k,ti)=>add("tb_trial","toybox",{block:bi+1,trial:ti+1,load:c.load,stake:c.stake,layout:c.layout,pic:makePicture(k,c.layout)}));
+    const pri=shuffle(CONFIG.priorsPerBlock);prevK=null;
+    pri.forEach((k,ti)=>{if(k!==prevK)priorNote(k,"toybox",false);add("tb_trial","toybox",{block:bi+1,trial:ti+1,load:c.load,stake:c.stake,layout:c.layout,pic:makePicture(k,c.layout)})});
     if(c.load)add("tb_digits_recall","toybox",{block:bi+1,digits});
   });
   add("tb_done","toybox");
@@ -328,7 +335,8 @@ function frame(step,body,footer){
   const segs=h("div",{class:"segs"});
   mods.forEach(m=>{const f=Math.max(0,Math.min(1,(S.cursor-m.a)/(m.b-m.a+1))),cu=S.cursor>=m.a&&S.cursor<=m.b;
     segs.append(h("div",{class:"seg"+(cu?" cur":"")},h("span",{},LB[m.m]),h("b",{},h("i",{style:"width:"+(f*100)+"%"}))))});
-  el.append(h("div",{class:"top"},h("span",{},"ID "+S.pid),segs),audioBar(step)||"",body,footer||"");
+  const bk=(canBack(step)&&!navBack)?h("button",{class:"btn sec","data-id":"back",style:"min-height:36px;padding:0 12px;font-size:16px",onclick:goBack},"← Back"):"";
+  el.append(h("div",{class:"top"},h("div",{style:"display:flex;gap:10px;align-items:center"},bk,h("span",{},"ID "+S.pid)),segs),audioBar(step)||"",body,footer||"");
   window.scrollTo(0,0);
 }
 function next(resp){ leaveScreen(resp); S.cursor++; save(); render(); }
@@ -369,6 +377,16 @@ SCREENS.tb_trial=(step)=>{
     m.practice?nb:"");
 };
 
+SCREENS.tb_prior=(step)=>{
+  const m=step.meta,k=m.prior,changed=m.prev!=null;
+  frame(step,h("div",{class:"card",style:"display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center;padding:18px 12px"},
+    m.practice?h("span",{class:"pill"},"Practice"):"",
+    changed?h("h2",{style:"color:var(--red)"},"Note: the group of boxes changes!"):h("h2",{},"This is the group of boxes"),
+    priorBar(k),priorCaption(k),
+    changed?h("p",{class:"mut",style:"font-size:18px"},"Before: "+m.prev+" of 10 boxes had more red. Now: "+k+" of 10 boxes have more red."):"",
+    h("p",{style:"font-size:22px"},"The next box is picked at random from these 10 boxes, and then put back.")),
+    btn(T("next"),()=>next()));
+};
 SCREENS.tb_block_start=(step)=>{
   const m=step.meta;
   frame(step,h("div",{class:"card",style:"display:flex;flex-direction:column;gap:12px"},
@@ -398,9 +416,9 @@ SCREENS.tb_digits_recall=(step)=>{
   frame(step,h("div",{class:"card"},prac?h("span",{class:"pill"},"Practice"):"",h("h2",{},"Type the number you saw"),disp,fb,kp));
 };
 
-function blockResults(){return S.screens.filter(r=>r.screen==="tb_trial"&&r.response&&!r.response.practice)}
+function blockResults(){return S.screens.filter(r=>r.screen==="tb_trial"&&r.response&&r.response.choice&&!r.response.practice&&!r.superseded)}
 SCREENS.tb_done=(step)=>{
-  frame(step,h("div",{class:"card"},h("h2",{},"Part 1 finished"),h("p",{},"Please take a short rest."),h("p",{class:"mut"},"[Optional break timer here]")),btn(T("next"),()=>next()));
+  frame(step,h("div",{class:"card",style:"display:flex;flex-direction:column;gap:12px;text-align:center;padding:24px 18px"},h("h2",{},"Thank you"),h("p",{style:"font-size:26px"},"This task is complete. Your winnings are recorded by the tablet, and we will pay them in March!")),btn(T("next"),()=>next()));
 };
 
 /* ---------- trading shop: one price per screen ---------- */
@@ -408,15 +426,20 @@ const itemPic=(key,lg)=>{const it=CONFIG.items[key],u=AUDIO["img_"+key];return h
 const coinGrid=(total,gone,big,label)=>{const g=h("div",{class:"coins"+(big?" big":"")});for(let i=0;i<total;i++)g.append(h("i",{class:(i<total-gone?"":"gone")+(label?" lab":"")},label&&i<total-gone?label:""));return g};
 const packTxt=n=>n+(n===1?" packet":" packets");
 /* verdict: one clean card. win = she gets the item. */
-function verdictCard(win,key,push,price,small){
+function verdictCard(win,key,push,price){
   const N=CONFIG.tokensTotal,give=win?price:0,kept=N-give;
-  return h("div",{class:"card",style:"display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;width:100%;padding:14px"},
-    h("p",{style:"font-size:20px"},"You pushed "+packTxt(push)+". The price is "+packTxt(price)+"."),
-    h("div",{class:"big",style:"font-size:34px;color:"+(win?"var(--ok)":"var(--red)")},win?"You get the item":"You get no item"),
-    win?itemPic(key):"",
-    h("div",{class:"cmp",style:"width:100%"},h("div",{class:"g"},"You give "+packTxt(give),h("small",{},"("+tokensToG(give)+" g)")),h("div",{class:"k"},"You keep "+packTxt(kept),h("small",{},"("+tokensToG(kept)+" g)"))));
-}
-function optCard(kind,key,price,onTap,still){
+  const kids=[h("div",{class:"big",style:"font-size:30px"},"Price: "+packTxt(price))];
+  if(win){
+    kids.push(h("div",{class:"big",style:"font-size:32px;color:var(--ok)"},"You get the item"),itemPic(key));
+    kids.push(h("div",{class:"cmp",style:"width:100%;flex-direction:column"},
+      h("div",{class:"g"},price<push?["You pay ",h("u",{},packTxt(price))," ",h("u",{},"instead of")," "+packTxt(push)]:"You pay "+packTxt(price)),
+      h("div",{class:"k"},"You keep "+packTxt(kept),h("small",{},"("+tokensToG(kept)+" g of dal)"))));
+  }else{
+    kids.push(h("div",{class:"big",style:"font-size:28px"},"No item this time"),
+      h("div",{class:"cmp",style:"width:100%;flex-direction:column"},h("div",{class:"k"},"You keep all "+N+" packets",h("small",{},"("+tokensToG(N)+" g of dal)"))));
+  }
+  return h("div",{class:"card",style:"display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;width:100%;padding:14px"},...kids);
+}function optCard(kind,key,price,onTap,still){
   const it=CONFIG.items[key],give=kind==="take"?price:0,kept=CONFIG.tokensTotal-give;
   return h("div",{class:"oc"+(still?" still":""),"data-id":kind,onclick:onTap},
     h("div",{class:"hd"},T(kind)),
@@ -426,21 +449,23 @@ function optCard(kind,key,price,onTap,still){
     h("p",{},"You keep ",h("b",{},kept)," packets"),
     h("div",{class:"num"},tokensToG(kept)+" g dal"));
 }
-const NAVIDS=["info","pl_item_intro","pl_choice","pl_slider"];
-function canBack(step){
-  if(S.cursor<1||!NAVIDS.includes(step.id))return false;
-  const pv=S.steps[S.cursor-1];if(!NAVIDS.includes(pv.id))return false;
-  if(pv.id==="pl_choice")return step.id==="pl_choice"&&pv.meta.key===step.meta.key;
-  return true;
-}
+const NOBACK=["effort_task","effort_end","thanks"];   // timed task and the final draw cannot be repeated
+let navBack=false;
+function canBack(step){return !NOBACK.includes(step.id)}
 function goBack(){
+  const step=S.steps[S.cursor];
+  S.backs=S.backs||[];S.backs.push({at:new Date().toISOString(),from_index:S.cursor,from_screen:step.id,from_key:(step.meta&&step.meta.key)||null,to_index:S.cursor-1});
+  if(S.cursor<=0){   // back from the first page: return to setup (wrong language, wrong ID), keep what was typed
+    const pre={pid:S.pid,enumerator:S.enumerator,lang:S.lang,autoplay:S.autoplay,showMissing:S.showMissing,backsToSetup:(S.backsToSetup||0)+1,backs:S.backs};
+    leaveScreen({back:true});S=null;try{localStorage.removeItem(KEY)}catch(e){}window.__prefill=pre;setup();return;
+  }
   leaveScreen({back:true});S.cursor--;
-  S.screens.forEach(r=>{if(r.step_index===S.cursor&&(r.screen==="pl_choice"||r.screen==="pl_slider"))r.superseded=true});
+  S.screens.forEach(r=>{if(r.step_index===S.cursor&&!(r.response&&r.response.back))r.superseded=true});
   save();render();
 }
 function navRow(step,fn,label){
   const r=h("div",{class:"row",style:"justify-content:space-between"});
-  r.append(canBack(step)?btn("← Back",goBack,"sec"):h("span",{}));
+  navBack=canBack(step);r.append(navBack?btn("← Back",goBack,"sec"):h("span",{}));
   if(fn!==null)r.append(btn(label||T("next"),fn||(()=>next())));
   return r;
 }
@@ -459,6 +484,7 @@ function infoVisual(v){
   if(v==="win")return ex(6,4,true);
   if(v==="lose")return ex(6,9,false);
   if(v==="welcome")return h("div",{class:"pic lg"},"👋");
+  if(v==="priornote")return h("div",{class:"card",style:"width:100%;border:3px solid var(--red);display:flex;flex-direction:column;gap:6px;align-items:center;padding:12px"},h("b",{style:"font-size:24px;color:var(--red)"},"Note: the group of boxes changes!"),priorBar(3),priorCaption(3));
   if(v==="efseq"){const sq=(L,on)=>h("div",{class:"btn"+(on?"":" sec"),style:"pointer-events:none;min-width:64px;min-height:64px;padding:0;font-size:32px"},L);return h("div",{class:"row c",style:"flex-wrap:nowrap;gap:6px"},sq("A",1),h("b",{},"→"),sq("B"),h("b",{},"→"),sq("A",1),h("b",{},"→"),sq("B"),h("b",{},"…"))}
   if(v==="efrule"){const sq=(L,on)=>h("div",{class:"btn"+(on?"":" sec"),style:"pointer-events:none;min-width:52px;min-height:52px;padding:0;font-size:26px"},L);
     const rw=(a,ok)=>h("div",{class:"row c",style:"flex-wrap:nowrap;gap:6px"},...a.map(L=>sq(L,L==="A")),h("b",{style:"font-size:34px;color:"+(ok?"var(--ok)":"var(--red)")},ok?"✓":"✗"));
@@ -513,10 +539,12 @@ SCREENS.pl_slider=(step)=>{
   const set=n=>{if(n<0||n>N)return;ev(n>g?"push":"pull",{count:n});g=n;moves++;paint()};
   paint();
   const dsc=it.desc?it.desc.replace(/ \(Confirm.*$/,""):"";
-  frame(step,h("div",{style:"display:flex;flex-direction:column;gap:8px"},
-    h("div",{class:"row",style:"justify-content:space-between;flex-wrap:nowrap"},h("span",{class:"pill"},m.practice?"Practice":"Real"),h("b",{style:"font-size:22px;text-align:right"},it.name)),
+  frame(step,h("div",{style:"display:flex;flex-direction:column;gap:6px;align-items:center"},
+    h("span",{class:"pill",style:"align-self:flex-start"},m.practice?"Practice":"Real"),
+    h("div",{"data-id":"itemname",style:"font-size:34px;font-weight:800;text-align:center;line-height:1.1"},it.name),
     dsc?h("p",{class:"mut",style:"text-align:center;font-size:17px"},dsc):"",
-    h("div",{class:"card",style:"display:flex;flex-direction:column;gap:8px;padding:10px"},h("div",{class:"row",style:"flex-wrap:nowrap;gap:10px"},itemPic(m.key),cmp),
+    itemPic(m.key,true),
+    h("div",{class:"card",style:"display:flex;flex-direction:column;gap:8px;padding:10px;width:100%"},cmp,
       h("p",{class:"mut",style:"font-size:14px"},"Tap a packet in the top rows to take it back. Tap a packet in the bottom rows to give it."),giveT,keepT)),
     navRow(step,()=>next({key:m.key,push:g,moves,practice:!!m.practice}),"Done"));
 };
@@ -540,11 +568,11 @@ SCREENS.pl_demo_draw=(step)=>{
       const pill=key?h("span",{class:"pill"},"Practice"):"";
       if(st.t==="item")body.append(h("div",{class:"card",style:cardS},pill,h("p",{style:"font-size:24px"},"The tablet picked this one:"),itemPic(key,true),h("h2",{},CONFIG.items[key].name),h("p",{style:"font-size:22px"},"You pushed "+push+" packets for it.")));
       if(st.t==="out"){const o=bdmOutcome(push,price);ev("demo_draw",{key,push,price,buy:o.buy,round:st.r});
-        body.append(h("div",{style:"display:flex;flex-direction:column;gap:10px;align-items:center"},pill,h("p",{style:"font-size:22px;text-align:center"},"Now the tablet picks its own price for the "+nm+"."),h("div",{class:"big"},"Price: "+packTxt(price)),verdictCard(o.buy,key,push,price)))}
+        body.append(h("div",{style:"display:flex;flex-direction:column;gap:10px;align-items:center"},pill,h("p",{style:"font-size:22px;text-align:center"},"Now the tablet picks its own price for the "+nm+"."),verdictCard(o.buy,key,push,price)))}
       if(st.t==="explain")body.append(h("div",{class:"card",style:cardS},
-        h("p",{style:"font-size:24px"},"If the price is the same as or less than what you pushed, you get the item."),
-        h("p",{style:"font-size:24px"},"If the price is more, you get no item."),
-        h("p",{style:"font-size:24px;font-weight:700"},"In the real part, the tablet does this in the same way, once, with your real pushes. We will tell you in March, and you will get your dal and your item then.")));
+        h("p",{style:"font-size:24px"},"If the price is the same as or less than what you pushed, you get the item, and you pay only the price."),
+        h("p",{style:"font-size:24px"},"If the price is more, you get no item, and you keep all 500 g of your dal."),
+        h("p",{style:"font-size:24px;font-weight:700"},"In the real part, the tablet does this in the same way, once, with your real pushes. We will tell you in March, and you will get your dal and your item then, together with your other earnings.")));
       if(st.t==="ask"){
         body.append(h("div",{class:"card",style:cardS},h("h2",{},"Did you understand?")));
         foot.append(h("div",{class:"row",style:"justify-content:space-between"},
@@ -573,8 +601,8 @@ SCREENS.pl_demo_draw=(step)=>{
 };
 
 const QUIZ_S=[
- {q:"You pushed 6 packets. The tablet picks the price 4. What happens?",o:["I get the item and I give 4 packets","I get the item and I give 6 packets","I get nothing"],a:0},
- {q:"You pushed 6 packets. The tablet picks the price 9. What happens?",o:["I get the item and I give 9 packets","I get no item, and I keep all my dal","I get the item for free"],a:1},
+ {q:"You pushed 6 packets. The tablet picks the price 4. What happens?",o:["I get the item and I pay 4 packets, instead of 6","I get the item and I pay 6 packets","I get nothing"],a:0},
+ {q:"You pushed 6 packets. The tablet picks the price 9. What happens?",o:["I get the item and I pay 9 packets","I get no item, and I keep all my dal","I get the item for free"],a:1},
  {q:"How many of the items are really paid?",o:["All of them","Only one, picked at random","None of them"],a:1},
  {q:"What is the best way to answer?",o:["Push exactly what I would truly give","Push as little as possible","Push all the packets"],a:0},
  {q:"When will you get the dal and the item?",o:["Today","In March","Never"],a:1}
@@ -597,7 +625,7 @@ SCREENS.pl_comprehension=(step)=>{
     const Q=QZ[qi];box.append(h("span",{class:"pill"},"Question "+(qi+1)+" of "+QZ.length),h("h2",{},Q.q));
     Q.o.forEach((t,i)=>box.append(h("div",{class:"opt","data-id":"q"+qi+"o"+i,onclick:()=>{
       const ok=i===Q.a;log.push({q:qi,attempt,choice:i,ok});ev("quiz",{q:qi,choice:i,ok});
-      if(ok){qi++;attempt=1;frame(step,box);draw()}
+      if(ok){box.querySelectorAll(".opt").forEach(o=>o.style.pointerEvents="none");box.append(h("p",{style:"text-align:center;font-size:30px;font-weight:700;color:var(--ok)","data-id":"right"},"Right"),btn(T("next"),()=>{qi++;attempt=1;frame(step,box);draw()}))}
       else{wrong++;attempt++;box.append(h("p",{class:"err"},"Not quite. Please try again."));if(attempt>2){qi++;attempt=1;setTimeout(()=>{frame(step,box);draw()},900)}}
     }},t)));
   };
@@ -607,7 +635,7 @@ SCREENS.pl_comprehension=(step)=>{
 /* ---------- money records (nothing about winnings is ever shown to the parent) ---------- */
 function toyboxMoney(){
   const rs=blockResults();let rs_=0;rs.forEach(r=>{if(r.response.correct)rs_+=r.response.stake});
-  let bonus=0;S.screens.filter(r=>r.screen==="tb_digits_recall"&&r.response&&!r.response.practice).forEach(r=>{if(r.response.exact)bonus+=CONFIG.digitBonusRs});
+  let bonus=0;S.screens.filter(r=>r.screen==="tb_digits_recall"&&r.response&&!r.response.practice&&!r.superseded).forEach(r=>{if(r.response.exact)bonus+=CONFIG.digitBonusRs});
   return {trialsCorrect:rs.filter(r=>r.response.correct).length,trialsTotal:rs.length,trialRs:rs_,digitRs:bonus,total:rs_+bonus};
 }
 function effortMoney(){
@@ -634,7 +662,7 @@ SCREENS.effort_task=(step)=>{
   const mk=L=>h("button",{class:"btn "+(L==="B"?"sec":""),"data-id":"effort_"+L,style:"flex:1;min-height:min(46dvh,300px);font-size:72px"},L);
   const bA=mk("A"),bB=mk("B");
   const hit=(L,b)=>{ if(done)return;taps++;
-    if(L===expect){points++;expect=expect==="A"?"B":"A"}else{wrong++;b.style.boxShadow="0 0 0 6px var(--red)";setTimeout(()=>{b.style.boxShadow=""},140)}
+    if(L===expect){points++;expect=expect==="A"?"B":"A"}else wrong++;
     if(E.showCount)cnt.textContent=points;
   };
   [bA,bB].forEach(b=>b.addEventListener("pointerdown",e=>{e.preventDefault();hit(b.textContent,b)}));
@@ -645,9 +673,8 @@ SCREENS.effort_task=(step)=>{
 SCREENS.effort_end=(step)=>{
   const prac=!!step.meta.practice;
   frame(step,h("div",{class:"card",style:"display:flex;flex-direction:column;gap:12px;text-align:center;padding:24px 18px"},
-    h("h2",{},"Time is up"),
-    h("p",{style:"font-size:26px"},prac?"That was the practice. Nothing was paid.":"The tapping task is finished. Well done."),
-    prac?"":h("p",{class:"mut",style:"font-size:22px"},"Your money for this task will be paid in March.")),
+    h("h2",{},prac?"Time is up":"Thank you"),
+    h("p",{style:"font-size:26px"},prac?"That was the practice. Nothing was paid.":"This task is complete. Your winnings are recorded by the tablet, and we will pay them in March!")),
     btn(T("next"),()=>next()));
 };
 
@@ -681,10 +708,16 @@ function drawTradingDecision(){
 }
 function revealLines(d){
   if(!CONFIG.revealAtEnd||d.mode!=="slider")return [];
-  const F="font-size:22px";
-  return [h("p",{style:F},"The tablet picked its own price: "+packTxt(d.price)+"."),
-    d.bought?h("p",{style:F+";font-weight:700;color:var(--ok)"},"The price is the same as or less than what you pushed for the item the tablet picked. So you get that item. We will tell you which item in March.")
-            :h("p",{style:F+";font-weight:700;color:var(--red)"},"The price is more than what you pushed for the item the tablet picked. So you get no item. We will tell you more in March.")];
+  const F="font-size:22px",N=CONFIG.tokensTotal;
+  if(CONFIG.endScreen==="outcome")
+    return [h("p",{style:F},"The tablet picked its own price: "+packTxt(d.price)+"."),
+      d.bought?h("p",{style:F+";font-weight:700;color:var(--ok)"},"You get the item, and you pay "+packTxt(d.price)+". You keep "+packTxt(N-d.price)+" of dal.")
+              :h("p",{style:F+";font-weight:700"},"You get no item, and you keep all "+packTxt(N)+" of dal.")];
+  // default: the price only. She MIGHT get the item (it depends on the item the tablet picked); we say what happens in each case.
+  return [h("p",{style:F+";font-weight:700"},"The tablet picked its own price: "+packTxt(d.price)+"."),
+    h("p",{style:F},"You might get the item. If you do, you pay "+packTxt(d.price)+" and you keep "+packTxt(N-d.price)+" ("+tokensToG(N-d.price)+" g) of dal."),
+    h("p",{style:F},"If you do not, you keep all "+packTxt(N)+" ("+tokensToG(N)+" g) of dal."),
+    h("p",{style:F},"We will tell you in March, together with your other earnings.")];
 }
 SCREENS.thanks=(step)=>{
   const d=drawTradingDecision();
@@ -704,10 +737,13 @@ SCREENS.thanks=(step)=>{
 
 /* ---------- setup ---------- */
 async function setup(){
-  const pid=h("input",{type:"text",placeholder:"Participant ID","data-id":"pid",autocomplete:"off"});
-  const pid2=h("input",{type:"text",placeholder:"Participant ID again","data-id":"pid2",autocomplete:"off"});
-  const enu=h("input",{type:"text",placeholder:"Enumerator ID","data-id":"enu",autocomplete:"off"});
+  const PF=window.__prefill||null;window.__prefill=null;
+  const iattr={type:"text",autocomplete:"off",autocapitalize:"characters",style:"text-transform:uppercase"};
+  const pid=h("input",{...iattr,placeholder:"Participant ID, e.g. PAD001","data-id":"pid",maxlength:"6"});
+  const pid2=h("input",{...iattr,placeholder:"Participant ID again","data-id":"pid2",maxlength:"6"});
+  const enu=h("input",{...iattr,placeholder:"Enumerator ID, e.g. ADM","data-id":"enu",maxlength:"3"});
   let lang="en",autoplay=false,showMissing=false;
+  if(PF){pid.value=PF.pid||"";pid2.value=PF.pid||"";enu.value=PF.enumerator||"";lang=PF.lang||"en";autoplay=!!PF.autoplay;showMissing=!!PF.showMissing}
   const tg=h("div",{class:"row"});
   const drawT=()=>{tg.innerHTML="";tg.append(h("div",{class:"opt"+(autoplay?" sel":""),"data-id":"autoplay",onclick:()=>{autoplay=!autoplay;drawT()}},"Play audio automatically: "+(autoplay?"ON":"OFF")),
     h("div",{class:"opt"+(showMissing?" sel":""),"data-id":"showmissing",onclick:()=>{showMissing=!showMissing;drawT()}},"Show missing-audio labels: "+(showMissing?"ON":"OFF")))};drawT();
@@ -719,12 +755,14 @@ async function setup(){
   const sess=await dbAll("s");const unsent=Object.values(sess).filter(x=>!x.sent).length;
   const startReal=(idc)=>{
     const seed=(Math.floor(Math.random()*2**31))|0;
-    S={pid:pid.value.trim(),enumerator:enu.value.trim(),lang,autoplay,showMissing,seed,appVersion:CONFIG.appVersion,config:CONFIG,startedAt:new Date().toISOString(),tablet:navigator.userAgent,idChecks:idc,cursor:0,screens:[],draw:null,steps:null};
+    S={pid:pid.value.trim().toUpperCase(),enumerator:enu.value.trim().toUpperCase(),lang,autoplay,showMissing,seed,appVersion:CONFIG.appVersion,config:CONFIG,startedAt:new Date().toISOString(),tablet:navigator.userAgent,idChecks:idc,cursor:0,screens:[],draw:null,steps:null,backs:(PF&&PF.backs)||[],backsToSetup:(PF&&PF.backsToSetup)||0};
     rng=mulberry32(seed);S.steps=buildSteps();save();render();
   };
   const verify=()=>{
-    const a=pid.value.trim(),b=pid2.value.trim(),e=enu.value.trim();
+    const a=pid.value.trim().toUpperCase(),b=pid2.value.trim().toUpperCase(),e=enu.value.trim().toUpperCase();
     if(!a||!b||!e){msg.textContent="Please fill in the participant ID twice and the enumerator ID.";return}
+    if(!/^[A-Z]{3}[0-9]{3}$/.test(a)){msg.textContent="The participant ID is 3 letters for the school, then 3 numbers, for example PAD001.";return}
+    if(!/^[A-Z]{3}$/.test(e)){msg.textContent="The enumerator ID is 3 letters, for example ADM.";return}
     if(a!==b){msg.textContent="The two participant IDs do not match. Please check and type them again.";pid2.value="";pid2.focus();return}
     msg.textContent="";
     const dup=Object.values(sess).some(x=>x.data&&x.data.pid===a);
@@ -861,11 +899,17 @@ async function showSendPanel(note){
     btn("Disconnect Dropbox on this tablet",()=>{DBX.rt="";DBX.at="";dst.textContent="Dropbox: not connected."},"sec"));
   el.innerHTML="";el.append(box);
 }
+document.getElementById("adm-lang").onclick=e=>{e.preventDefault();if(!S||!S.steps||S.cursor>=S.steps.length)return;
+  const ov=h("div",{style:"position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9"});
+  const bx=h("div",{class:"card",style:"display:flex;flex-direction:column;gap:12px;min-width:240px"},h("h2",{},"Language"));
+  CONFIG.languages.forEach(([c,n])=>bx.append(btn(n+(S.lang===c?"  ✓":""),()=>{if(c!==S.lang){(S.langChanges=S.langChanges||[]).push({at:new Date().toISOString(),from:S.lang,to:c,step:S.cursor});S.lang=c;save()}ov.remove();render()},c===S.lang?"":"sec")));
+  bx.append(btn("Close",()=>ov.remove(),"sec"));ov.append(bx);document.body.append(ov)};
 document.getElementById("adm-export").onclick=e=>{e.preventDefault();showSendPanel()};
 document.getElementById("adm-reset").onclick=e=>{e.preventDefault();if(confirm("Delete the UNFINISHED session on this tablet? Finished sessions are kept.")){localStorage.removeItem(KEY);S=null;setup()}};
 
 function render(){
   if(S.cursor>=S.steps.length){return}
+  navBack=false;
   const step=S.steps[S.cursor];
   // after resume, per-step content is stored in S.steps, so pictures/digits do not change
   enterScreen(step);
